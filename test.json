@@ -1,0 +1,8 @@
+{"ts":"2026-01-15 08:30:00","level":"INFO","service":"auth","msg":"User logged in successfully"}
+{"ts":"2026-01-15 08:31:12","level":"ERROR","service":"db","msg":"Connection timeout"}
+{"ts":"2026-01-15 08:32:45","level":"WARN","service":"cache","msg":"Cache miss for key 'user:123'"}
+{"ts":"2026-01-15 08:33:01","level":"INFO","service":"api","msg":"GET /users/123 returned 200"}
+{"ts":"2026-01-15 08:34:22","level":"ERROR","service":"auth","msg":"Invalid password attempt"}
+{"ts":"2026-01-15 08:35:00","level":"INFO","service":"scheduler","msg":"Daily cleanup started"}
+{"ts":"2026-01-15 08:36:10","level":"WARN","service":"api","msg":"Rate limit exceeded for IP 192.168.1.100"}
+{"ts":"2026-01-15 08:37:30","level":"ERROR","service":"payment","msg":"Failed to process transaction #TX98765"}

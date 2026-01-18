@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Анализатор Логов</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div class="app">
+        <div class="main-block">
+    <h1>Анализатор логов</h1>
+
+    <div>
+        <label for="fileInput" class="file-input">Выберите файл</label>
+        <button id="exportButton">Экспорт в CSV</button>
+        <input type="file" id="fileInput" accept=".log,.json" class="hidden-file-input"/>
+    </div>
+    <div>
+        <label>От: <input type="datetime-local" id="startTime" /></label>
+        <label>До: <input type="datetime-local" id="endTime" /></label>
+    </div>
+    <div>
+            <input type="text" id="messageKeyword" placeholder="Поиск по ключевому слову...">
+    </div>
+        <div>        
+        <label> <input type="checkbox" id="ERROR" checked>ERROR</label>
+        <label> <input type="checkbox" id="WARN" checked>WARN</label>
+        <label> <input type="checkbox" id="INFO" checked>INFO</label>
+    </div>
+
+
+        </div>
+    <div class="table-div">
+    <table id="logTable">
+        <thead>
+            <tr><th class="time">Time</th><th class="lvl">Level</th><th class="service">Service</th><th class="msg">Message</th></tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+    </table>
+    </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

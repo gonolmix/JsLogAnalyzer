@@ -1,0 +1,164 @@
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 20px; 
+}
+
+th, td { 
+    border: 1px solid #ccc; 
+    padding: 8px; 
+    text-align: left; 
+}
+
+th { 
+    background-color: #f0f0f0; 
+}
+
+input, button { 
+    margin: 5px; 
+    padding: 5px; 
+}
+
+* {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    padding: 0;
+    margin: 0;
+}
+.app {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+h1 {
+    color: #961111;
+}
+
+.main-block {
+    height: 400px;
+    width: 1440px;
+    margin: 50px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 60px rgba(109, 201, 255, 0.3);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    gap: 16px;
+}
+.hidden-file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+.file-input {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgb(0, 0, 0);
+  border: none;
+  height: 50px;
+  border-radius: 28px;
+  font-size: 16px;
+  cursor: pointer;
+  user-select: none;
+  width: 320px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.main-block > div {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.main-block label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8f9fa;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.time {
+    width: 250px;
+}
+
+.lvl {
+    width: 120px;
+}
+
+.service {
+    width: 180px;
+}
+
+.main-block label:hover {
+    background: #e9ecef;
+}
+
+.main-block input[type="checkbox"] {
+    margin: 0;
+    transform: scale(1.1);
+}
+
+.main-block input[type="datetime-local"] {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 180px;
+}
+.main-block input[type="text"] {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 28px;
+    font-size: 14px;
+    width: 500px;
+    height: 50px;
+}
+
+#exportButton {
+    padding: 10px 20px;
+    background: rgba(153, 87, 12);
+    color: white;
+    border: none;
+    border-radius: 28px;
+    font-size: 16px;
+    cursor: pointer;
+    height: 50px;
+}
+
+#exportButton:hover {
+    background: #0b5ed7;
+}
+
+#exportButton:active {
+    transform: translateY(1px);
+}
+
+.table-div {
+    border: 1px solid black;
+    width: 1440px;
+    padding-top: 10px;
+    padding-left: 30px;
+    padding-right: 30px;
+    padding-bottom: 30px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 60px rgba(153, 87, 12, 0.3);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
