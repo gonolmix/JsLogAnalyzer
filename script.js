@@ -24,8 +24,12 @@ document.getElementById('WARN').addEventListener('change', applyFilters);
 document.getElementById('INFO').addEventListener('change', applyFilters);
 document.getElementById('startTime').addEventListener('change', applyFilters);
 document.getElementById('endTime').addEventListener('change', applyFilters);
-document.getElementById('messageKeyword').addEventListener('input', applyFilters);
+
+// вызов с задержкой (300 мс)
+document.getElementById('messageKeyword').addEventListener('input', debounce(applyFilters, 300));
+
 document.getElementById('exportButton').addEventListener('click', exportToCSV);
+
 
 
 async function handleFile(event) {
@@ -48,6 +52,10 @@ function parseLogText(text, isJson) {
     try {
       if (isJson) {
         const entry = JSON.parse(line);
+        if (!isDateValid(entry.ts)){
+          // пропуск строки
+          continue;
+        }
         logs.push({
           ts: entry.ts,
           level: entry.level || 'INFO',
@@ -66,6 +74,8 @@ function parseLogText(text, isJson) {
         }
       }
     } catch (e) {
+      // 9. логирование ошибок парсинга в консоли
+      console.warn('Failed to parse log line:', line, e);
     }
   }
 
@@ -106,16 +116,22 @@ function applyFilters(){
       return false;
     }
 
-    const logTime = new Date(l.ts);
-    const startTime = new Date(startTimeInput.value);
-    const endTime = new Date(endTimeInput.value);
-
-    if (logTime < startTime) {
-      return false;
+    const logTimeText = toComparableDate(l.ts);
+    const logTime = Date.parse(logTimeText);
+    
+    // 5. пропуск фильтрации, если поля времени пусты
+    if (startTimeInput.value){
+          const startTime = Date.parse(startTimeInput.value);
+          if (isNaN(startTime) || logTime < startTime) {
+          return false;
+    }
     }
 
-    if (logTime > endTime){
-      return false;
+    if (endTimeInput.value){
+          const endTime = Date.parse(endTimeInput.value);
+          if (isNaN(endTime) || logTime > endTime){
+          return false;
+    }
     }
 
     const keyword = keywordInput.value.trim().toLowerCase();
@@ -129,6 +145,21 @@ function applyFilters(){
   renderTable(filtered_logs);
 }
 
+// 4. Функция корректности даты
+function isDateValid(ts){
+  return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(ts);
+}
+
+// 3. Функция правильного экранирования ковычек
+function escapeCsv(value){
+  if (value == null){
+    return '""';
+  }
+  let textString = String(value);
+  textString = textString.replace(/"/g, '""');
+  return '"${textString}"';
+}
+
 function exportToCSV(){
   if (filtered_logs.length === 0){
     alert("Нет данных для экспорта в CSV!");
@@ -139,14 +170,15 @@ function exportToCSV(){
 
   const rows = filtered_logs.map(l =>
   [
-    l.ts,
-    l.level,
-    l.service,
-    l.msg
-  ].join(';')
+    escapeCsv(l.ts),
+    escapeCsv(l.level),
+    escapeCsv(l.service),
+    escapeCsv(l.msg)
+  ].join(',')
   );
-
-  const content = [headers.join(';'), ...rows].join('\n');
+  
+  // 1. добавлен \ufeff; 2. изменено ; на , 
+  const content = '\uFEFF' + [headers.join(','), ...rows].join('\n');
 
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -157,4 +189,24 @@ function exportToCSV(){
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+  // 6. функция задержки
+  function debounce(callee, timeoutMs) {
+  return function perform(...args) {
+    let previousCall = this.lastCall
+
+    this.lastCall = Date.now()
+
+    if (previousCall && this.lastCall - previousCall <= timeoutMs) {
+      clearTimeout(this.lastCallTimer)
+    }
+
+    this.lastCallTimer = setTimeout(() => callee(...args), timeoutMs)
+  }
+}
+
+// 10. функция для корректного сравнения дат
+function toComparableDate(date){
+  return date.replace(' ', 'T');
 }
