@@ -38,7 +38,9 @@ h1 {
 
 .main-block {
     height: 400px;
-    width: 1440px;
+    width: 100%;
+    max-width: 1440px;
+    margin: 50px auto;
     margin: 50px;
     border: 1px solid rgba(0, 0, 0, 0.1);
     box-shadow: 0 20px 60px rgba(109, 201, 255, 0.3);
@@ -150,7 +152,9 @@ h1 {
 
 .table-div {
     border: 1px solid black;
-    width: 1440px;
+    width: 100%;
+    max-width: 1440px;
+    margin: 50px auto;
     padding-top: 10px;
     padding-left: 30px;
     padding-right: 30px;

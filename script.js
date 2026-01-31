@@ -74,7 +74,6 @@ function parseLogText(text, isJson) {
         }
       }
     } catch (e) {
-      // 9. логирование ошибок парсинга в консоли
       console.warn('Failed to parse log line:', line, e);
     }
   }
@@ -116,20 +115,19 @@ function applyFilters(){
       return false;
     }
 
-    const logTimeText = toComparableDate(l.ts);
-    const logTime = Date.parse(logTimeText);
+    // упрощение для сравнения строк без использования Date.parce()
+    const logTimeStr = l.ts.substring(0, 16).replace(' ', 'T');
     
-    // 5. пропуск фильтрации, если поля времени пусты
     if (startTimeInput.value){
-          const startTime = Date.parse(startTimeInput.value);
-          if (isNaN(startTime) || logTime < startTime) {
+          const startTime = startTimeInput.value;
+          if (logTimeStr < startTime) {
           return false;
     }
     }
 
     if (endTimeInput.value){
-          const endTime = Date.parse(endTimeInput.value);
-          if (isNaN(endTime) || logTime > endTime){
+          const endTime = endTimeInput.value;
+          if (logTimeStr > endTime){
           return false;
     }
     }
@@ -145,19 +143,18 @@ function applyFilters(){
   renderTable(filtered_logs);
 }
 
-// 4. Функция корректности даты
 function isDateValid(ts){
   return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(ts);
 }
 
-// 3. Функция правильного экранирования ковычек
 function escapeCsv(value){
   if (value == null){
     return '""';
   }
   let textString = String(value);
   textString = textString.replace(/"/g, '""');
-  return '"${textString}"';
+  // добавление конкатенации
+  return '"' + textString + '"';
 }
 
 function exportToCSV(){
@@ -177,7 +174,6 @@ function exportToCSV(){
   ].join(',')
   );
   
-  // 1. добавлен \ufeff; 2. изменено ; на , 
   const content = '\uFEFF' + [headers.join(','), ...rows].join('\n');
 
   const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
@@ -191,22 +187,11 @@ function exportToCSV(){
   URL.revokeObjectURL(url);
 }
 
-  // 6. функция задержки
-  function debounce(callee, timeoutMs) {
-  return function perform(...args) {
-    let previousCall = this.lastCall
-
-    this.lastCall = Date.now()
-
-    if (previousCall && this.lastCall - previousCall <= timeoutMs) {
-      clearTimeout(this.lastCallTimer)
-    }
-
-    this.lastCallTimer = setTimeout(() => callee(...args), timeoutMs)
+  function debounce(func, timeoutMs) {
+    let timeout;
+    return function perform(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), timeoutMs);
   }
 }
 
-// 10. функция для корректного сравнения дат
-function toComparableDate(date){
-  return date.replace(' ', 'T');
-}
