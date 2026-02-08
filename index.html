@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8" />
     <title>Анализатор Логов</title>
@@ -7,13 +7,13 @@
 </head>
 <body>
     <div class="app">
-        <div class="main-block">
+        <div class="main-block card">
     <h1>Анализатор логов</h1>
 
     <div>
-        <label for="fileInput" class="file-input">Выберите файл</label>
-        <button id="exportButton">Экспорт в CSV</button>
+        <button type="button" class="file-input" id="fileButton">Выберите файл</button>
         <input type="file" id="fileInput" accept=".log,.json" class="hidden-file-input"/>
+        <button id="exportButton">Экспорт в CSV</button>
     </div>
     <div>
         <label>От: <input type="datetime-local" id="startTime" /></label>
@@ -30,7 +30,7 @@
 
 
         </div>
-    <div class="table-div">
+    <div class="table-div card">
     <table id="logTable">
         <thead>
             <tr><th class="time">Time</th><th class="lvl">Level</th><th class="service">Service</th><th class="msg">Message</th></tr>
