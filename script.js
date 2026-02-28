@@ -17,6 +17,9 @@ const MAX_PARSE_WARNINGS = 10;
 // error counter
 let parseErrorCount = 0;
 
+// date error counter
+let dateErrorsCount = 0;
+
 // all logs
 let logs = [];
 
@@ -45,6 +48,7 @@ document.getElementById('exportButton').addEventListener('click', exportToCSV);
 
 async function handleFile(event) {
     parseErrorCount = 0;
+    dateErrorsCount = 0;
     
     const file = event.target.files[0];
 
@@ -55,6 +59,8 @@ async function handleFile(event) {
     logs = parseLogText(text, file.name.endsWith('.json'));
     renderTable(logs);
     applyFilters();
+
+    event.target.value = '';
 }
 
 // added JSON array support
@@ -67,13 +73,33 @@ function parseLogText(text, isJson) {
       try {
         const match = line.match(logRegex);
         if (match && match.groups) {
+          if (isDateValid(match.groups.ts)) {
           logs.push({
             ts: match.groups.ts,
             isoTime: normalizeToIso(match.groups.ts),
-            level: match.groups.level,
+            level: match.groups.level.toUpperCase(),
             service: match.groups.service,
             msg: match.groups.msg
           });
+          }
+          else {
+          if (dateErrorsCount < MAX_PARSE_WARNINGS) {
+            console.warn('Invalid timestamp in log line:', line);
+            dateErrorsCount++;
+          } else if (dateErrorsCount === MAX_PARSE_WARNINGS) {
+            console.warn('... and more timestamp errors (skipped)');
+            dateErrorsCount++;
+          }
+        }
+      }
+        else {
+          if (parseErrorCount < MAX_PARSE_WARNINGS) {
+            console.warn('Line does not match log format:', line);
+            parseErrorCount++;
+          } else if (parseErrorCount === MAX_PARSE_WARNINGS) {
+              console.warn('... and more format errors (skipped)');
+              parseErrorCount++;
+          }
         }
       } catch (e) {
         if (parseErrorCount < MAX_PARSE_WARNINGS) {
@@ -97,18 +123,18 @@ function parseLogText(text, isJson) {
         .map(entry => ({
           ts: entry.ts,
           isoTime: normalizeToIso(entry.ts),
-          level: entry.level || 'INFO',
-          service: entry.service || 'unknown',
-          msg: entry.msg || ''
+          level: String(entry.level || 'INFO').toUpperCase(),
+          service: String(entry.service || 'unknown'),
+          msg: String(entry.msg || '')
         }));
     } else if (typeof parsed === 'object' && parsed !== null) {
       if (isDateValid(parsed.ts)) {
         return [{
           ts: parsed.ts,
           isoTime: normalizeToIso(parsed.ts),
-          level: parsed.level || 'INFO',
-          service: parsed.service || 'unknown',
-          msg: parsed.msg || ''
+          level: String(parsed.level || 'INFO').toUpperCase(),
+          service: String(parsed.service || 'unknown'),
+          msg: String(parsed.msg || '')
         }];
       }
     }
@@ -124,9 +150,9 @@ function parseLogText(text, isJson) {
         logs.push({
           ts: entry.ts,
           isoTime: normalizeToIso(entry.ts),
-          level: entry.level || 'INFO',
-          service: entry.service || 'unknown',
-          msg: entry.msg || ''
+          level: String(entry.level || 'INFO').toUpperCase(),
+          service: String(entry.service || 'unknown'),
+          msg: String(entry.msg || '')
         });
       }
     } catch (e) {
