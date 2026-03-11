@@ -7,6 +7,9 @@ const infoCheckbox = document.getElementById('INFO');
 const startTimeInput = document.getElementById('startTime');
 const endTimeInput = document.getElementById('endTime');
 const keywordInput = document.getElementById('messageKeyword');
+const showAllLevelsCheckbox = document.getElementById('showAllLevels');
+const report = document.getElementById('parseReport');
+
 
 // more flexible regex
 const logRegex = /^(?<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>\w+)\] (?<service>[a-zA-Z0-9_.-]+) [—\-:] (?<msg>.+)$/;
@@ -19,6 +22,9 @@ let parseErrorCount = 0;
 
 // date error counter
 let dateErrorsCount = 0;
+
+// error messages storage
+let parseMessages = [];
 
 // all logs
 let logs = [];
@@ -33,22 +39,25 @@ document.getElementById('fileButton').addEventListener('click', () =>{
   document.getElementById('fileInput').click();
 });
 document.getElementById('fileInput').addEventListener('change', handleFile);
-document.getElementById('ERROR').addEventListener('change', applyFilters);
-document.getElementById('WARN').addEventListener('change', applyFilters);
-document.getElementById('INFO').addEventListener('change', applyFilters);
+document.getElementById('ERROR').addEventListener('change', diasableShowAllLevelsCheckbox);
+document.getElementById('WARN').addEventListener('change', diasableShowAllLevelsCheckbox);
+document.getElementById('INFO').addEventListener('change', diasableShowAllLevelsCheckbox);
 document.getElementById('startTime').addEventListener('change', applyFilters);
 document.getElementById('endTime').addEventListener('change', applyFilters);
+
 
 // debounce (300 ms)
 document.getElementById('messageKeyword').addEventListener('input', debounce(applyFilters, 300));
 
 document.getElementById('exportButton').addEventListener('click', exportToCSV);
 
+document.getElementById('showAllLevels').addEventListener('change', diasableCheckBoxes);
 
 
 async function handleFile(event) {
     parseErrorCount = 0;
     dateErrorsCount = 0;
+    parseMessages = [];
     
     const file = event.target.files[0];
 
@@ -61,6 +70,9 @@ async function handleFile(event) {
     applyFilters();
 
     event.target.value = '';
+    report.value = parseMessages.join('\n');
+    
+    makeReport();
 }
 
 // added JSON array support
@@ -83,32 +95,17 @@ function parseLogText(text, isJson) {
           });
           }
           else {
-          if (dateErrorsCount < MAX_PARSE_WARNINGS) {
-            console.warn('Invalid timestamp in log line:', line);
+            logParseMessage('Invalid timestamp', line);
             dateErrorsCount++;
-          } else if (dateErrorsCount === MAX_PARSE_WARNINGS) {
-            console.warn('... and more timestamp errors (skipped)');
-            dateErrorsCount++;
-          }
         }
       }
         else {
-          if (parseErrorCount < MAX_PARSE_WARNINGS) {
-            console.warn('Line does not match log format:', line);
+            logParseMessage('Line does not match format', line);
             parseErrorCount++;
-          } else if (parseErrorCount === MAX_PARSE_WARNINGS) {
-              console.warn('... and more format errors (skipped)');
-              parseErrorCount++;
-          }
         }
       } catch (e) {
-        if (parseErrorCount < MAX_PARSE_WARNINGS) {
-          console.warn('Failed to parse log line:', line, e);
+          logParseMessage('Parse error', line + ' (' + e.message + ')');
           parseErrorCount++;
-        } else if (parseErrorCount === MAX_PARSE_WARNINGS) {
-            console.warn('... and more parsing errors (skipped)');
-            parseErrorCount++;
-        }
       }
     }
     return logs;
@@ -156,13 +153,8 @@ function parseLogText(text, isJson) {
         });
       }
     } catch (e) {
-        if (parseErrorCount < MAX_PARSE_WARNINGS) {
-          console.warn('Failed to parse JSON line:', line, e);
+          logParseMessage('JSON parse error', line + ' (' + e.message + ')');
           parseErrorCount++;
-        } else if (parseErrorCount === MAX_PARSE_WARNINGS) {
-            console.warn('... and more parsing errors (skipped)');
-            parseErrorCount++;
-        }
     }
   }
   return logs;
@@ -194,6 +186,8 @@ function escapeHtml(text) {
 function applyFilters(){
 
   filteredLogs = logs.filter(l => {
+    
+    if (!showAllLevelsCheckbox.checked) {
     const levelCheck = 
     (errorCheckbox.checked && l.level === "ERROR") ||
     (warnCheckbox.checked && l.level === "WARN") ||
@@ -202,9 +196,14 @@ function applyFilters(){
     if (!levelCheck){
       return false;
     }
+  }
 
     // comparison of ISO format dates
-    if (startTimeInput.value && l.isoTime < startTimeInput.value) return false;
+    if (startTimeInput.value) {
+      const startWithSeconds = startTimeInput.value + ':00';
+      if (l.isoTime < startWithSeconds) 
+        return false;
+    }
 
     if (endTimeInput.value && l.isoTime > endTimeInput.value) return false;
 
@@ -289,12 +288,62 @@ function exportToCSV(){
 
 // date normalization function (ISO format)
 function normalizeToIso(ts) {
-  const match = ts.match(/^(\d{4})-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):\d{1,2}$/);
+  const match = ts.match(/^(\d{4})-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/);
   if (!match) return null;
 
-  const [, year, month, day, hours, minutes] = match;
-  const pad = n => n.toString().padStart(2, '0');
+  const [, year, month, day, hours, minutes, seconds] = match;
+  const pad = n => String(n).padStart(2, '0');
   
-  return `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}`;
+  return `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
+
+function diasableCheckBoxes() {
+    errorCheckbox.checked = false;
+    warnCheckbox.checked = false;
+    infoCheckbox.checked = false;
+
+    applyFilters();
+}
+
+function diasableShowAllLevelsCheckbox() {
+    showAllLevelsCheckbox.checked = false;
+
+    applyFilters();
+}
+
+function logParseMessage(message, line = '') {
+  console.warn(message, line);
+  
+  if (parseMessages.length < MAX_PARSE_WARNINGS) {
+    parseMessages.push(`${message}: "${line.trim().slice(0, 80)}"`); 
+  } else if (parseMessages.length === MAX_PARSE_WARNINGS) {
+    parseMessages.push('... and more errors (skipped)');
+  }
+}
+
+function makeReport() {
+  const totalParsed = logs.length;
+  const totalSkipped = parseErrorCount + dateErrorsCount;
+  const totalProcessed = totalParsed + totalSkipped;
+
+  let reportLines = [];
+  reportLines.push(`Total lines processed: ${totalProcessed}`);
+  reportLines.push(`Successfully parsed:  ${totalParsed}`);
+  reportLines.push(`Skipped due to errors: ${totalSkipped}`);
+  reportLines.push('');
+
+  if (totalSkipped > 0) {
+    reportLines.push('Error details:');
+    if (parseMessages.length > 0) {
+      parseMessages.forEach(msg => reportLines.push(msg));
+    } else {
+      reportLines.push('No specific errors captured (limit reached)');
+    }
+  } else {
+    reportLines.push('No errors detected. All lines parsed successfully.');
+  }
+
+  report.value = reportLines.join('\n');
+}
+
 })();
