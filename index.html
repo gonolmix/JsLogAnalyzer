@@ -1,26 +1,26 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Анализатор Логов</title>
+    <title>Log Analyzer</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
     <div class="app">
         <div class="main-block card">
-    <h1>Анализатор логов</h1>
+    <h1>Log Analyzer</h1>
 
     <div>
-        <button type="button" class="file-input" id="fileButton">Выберите файл</button>
+        <button type="button" class="file-input" id="fileButton">Select File</button>
         <input type="file" id="fileInput" accept=".log,.json" class="hidden-file-input"/>
-        <button id="exportButton">Экспорт в CSV</button>
+        <button id="exportButton">Export to CSV</button>
     </div>
     <div>
-        <label>От: <input type="datetime-local" id="startTime" /></label>
-        <label>До: <input type="datetime-local" id="endTime" /></label>
+        <label>From: <input type="datetime-local" id="startTime" /></label>
+        <label>To: <input type="datetime-local" id="endTime" /></label>
     </div>
     <div>
-            <input type="text" id="messageKeyword" placeholder="Поиск по ключевому слову...">
+            <input type="text" id="messageKeyword" placeholder="Keyword search...">
     </div>
         <div>        
         <label> <input type="checkbox" id="ERROR" checked>ERROR</label>

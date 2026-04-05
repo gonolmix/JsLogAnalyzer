@@ -9,6 +9,10 @@ const endTimeInput = document.getElementById('endTime');
 const keywordInput = document.getElementById('messageKeyword');
 const showAllLevelsCheckbox = document.getElementById('showAllLevels');
 const report = document.getElementById('parseReport');
+const fileInput = document.getElementById('fileInput');
+const fileButton = document.getElementById('fileButton');
+const exportButton = document.getElementById('exportButton');
+const tbody = document.getElementById('logBody');
 
 
 // more flexible regex
@@ -35,23 +39,23 @@ let filteredLogs = [];
 // listeners
 
 // added real button instead of the label
-document.getElementById('fileButton').addEventListener('click', () =>{
-  document.getElementById('fileInput').click();
+fileButton.addEventListener('click', () =>{
+  fileInput.click();
 });
-document.getElementById('fileInput').addEventListener('change', handleFile);
-document.getElementById('ERROR').addEventListener('change', diasableShowAllLevelsCheckbox);
-document.getElementById('WARN').addEventListener('change', diasableShowAllLevelsCheckbox);
-document.getElementById('INFO').addEventListener('change', diasableShowAllLevelsCheckbox);
-document.getElementById('startTime').addEventListener('change', applyFilters);
-document.getElementById('endTime').addEventListener('change', applyFilters);
+fileInput.addEventListener('change', handleFile);
+errorCheckbox.addEventListener('change', disableShowAllLevelsCheckbox);
+warnCheckbox.addEventListener('change', disableShowAllLevelsCheckbox);
+infoCheckbox.addEventListener('change', disableShowAllLevelsCheckbox);
+startTimeInput.addEventListener('change', applyFilters);
+endTimeInput.addEventListener('change', applyFilters);
 
 
 // debounce (300 ms)
-document.getElementById('messageKeyword').addEventListener('input', debounce(applyFilters, 300));
+keywordInput.addEventListener('input', debounce(applyFilters, 300));
 
-document.getElementById('exportButton').addEventListener('click', exportToCSV);
+exportButton.addEventListener('click', exportToCSV);
 
-document.getElementById('showAllLevels').addEventListener('change', diasableCheckBoxes);
+showAllLevelsCheckbox.addEventListener('change', disableCheckBoxes);
 
 
 async function handleFile(event) {
@@ -66,48 +70,40 @@ async function handleFile(event) {
 
     const text = await file.text();
     logs = parseLogText(text, file.name.endsWith('.json'));
-    renderTable(logs);
     applyFilters();
 
     event.target.value = '';
-    report.value = parseMessages.join('\n');
     
     makeReport();
 }
 
-// added JSON array support
 function parseLogText(text, isJson) {
   if (!isJson) {
     const lines = text.replace(/\r/g, '').split('\n').filter(line => line.trim() !== '');
     const logs = [];
 
-    for (const line of lines) {
-      try {
-        const match = line.match(logRegex);
-        if (match && match.groups) {
-          if (isDateValid(match.groups.ts)) {
-          logs.push({
-            ts: match.groups.ts,
-            isoTime: normalizeToIso(match.groups.ts),
-            level: match.groups.level.toUpperCase(),
-            service: match.groups.service,
-            msg: match.groups.msg
-          });
-          }
-          else {
-            logParseMessage('Invalid timestamp', line);
-            dateErrorsCount++;
-        }
-      }
-        else {
-            logParseMessage('Line does not match format', line);
-            parseErrorCount++;
-        }
-      } catch (e) {
-          logParseMessage('Parse error', line + ' (' + e.message + ')');
-          parseErrorCount++;
-      }
+  for (const line of lines) {
+    const match = line.match(logRegex);
+    if (!match || !match.groups) {
+      logParseMessage('Line does not match format', line);
+      parseErrorCount++;
+      continue;
     }
+
+    if (!isDateValid(match.groups.ts)) {
+      logParseMessage('Invalid timestamp', line);
+      dateErrorsCount++;
+      continue;
+    }
+
+    logs.push({
+      ts: match.groups.ts,
+      isoTime: normalizeToIso(match.groups.ts),
+      level: match.groups.level.toUpperCase(),
+      service: match.groups.service,
+      msg: match.groups.msg
+    });
+  }
     return logs;
   }
 
@@ -115,15 +111,27 @@ function parseLogText(text, isJson) {
     const parsed = JSON.parse(text);
 
     if (Array.isArray(parsed)) {
-      return parsed
-        .filter(entry => entry && typeof entry === 'object' && isDateValid(entry.ts))
-        .map(entry => ({
+      const logs = [];
+      for (const entry of parsed) {
+        if (!entry || typeof entry !== 'object') {
+          logParseMessage('Invalid JSON entry (not an object)', JSON.stringify(entry).slice(0, 100));
+          parseErrorCount++;
+          continue;
+        }
+        if (!isDateValid(entry.ts)) {
+          logParseMessage('Invalid timestamp in JSON entry', JSON.stringify(entry).slice(0, 100));
+          dateErrorsCount++;
+          continue;
+        }
+        logs.push({
           ts: entry.ts,
           isoTime: normalizeToIso(entry.ts),
           level: String(entry.level || 'INFO').toUpperCase(),
           service: String(entry.service || 'unknown'),
           msg: String(entry.msg || '')
-        }));
+        });
+      }
+      return logs;
     } else if (typeof parsed === 'object' && parsed !== null) {
       if (isDateValid(parsed.ts)) {
         return [{
@@ -133,9 +141,16 @@ function parseLogText(text, isJson) {
           service: String(parsed.service || 'unknown'),
           msg: String(parsed.msg || '')
         }];
+      } else {
+        logParseMessage('Invalid timestamp in JSON object', JSON.stringify(parsed).slice(0, 100));
+        dateErrorsCount++;
       }
     }
-  } catch (e) {}
+    return [];
+  } catch (e) {
+    logParseMessage('Failed to parse entire JSON file', e.message);
+    parseErrorCount++;
+  }
 
   const lines = text.replace(/\r/g, '').split('\n').filter(line => line.trim() !== '');
   const logs = [];
@@ -143,30 +158,36 @@ function parseLogText(text, isJson) {
     if (!line.trim()) continue;
     try {
       const entry = JSON.parse(line);
-      if (isDateValid(entry.ts)) {
-        logs.push({
-          ts: entry.ts,
-          isoTime: normalizeToIso(entry.ts),
-          level: String(entry.level || 'INFO').toUpperCase(),
-          service: String(entry.service || 'unknown'),
-          msg: String(entry.msg || '')
-        });
+      if (!entry || typeof entry !== 'object') {
+        logParseMessage('Invalid JSONL entry (not an object)', line.slice(0, 100));
+        parseErrorCount++;
+        continue;
       }
+      if (!isDateValid(entry.ts)) {
+        logParseMessage('Invalid timestamp in JSONL entry', line.slice(0, 100));
+        dateErrorsCount++;
+        continue;
+      }
+      logs.push({
+        ts: entry.ts,
+        isoTime: normalizeToIso(entry.ts),
+        level: String(entry.level || 'INFO').toUpperCase(),
+        service: String(entry.service || 'unknown'),
+        msg: String(entry.msg || '')
+      });
     } catch (e) {
-          logParseMessage('JSON parse error', line + ' (' + e.message + ')');
-          parseErrorCount++;
+      logParseMessage('JSON parse error', line.slice(0, 100) + ' (' + e.message + ')');
+      parseErrorCount++;
     }
   }
   return logs;
 }
 
 function renderTable(logs) {
-  const tbody = document.getElementById('logBody');
   tbody.innerHTML = '';
 
   for (const log of logs) {
     const row = document.createElement('tr');
-    // added escapeHtml to ts/level/service
     row.innerHTML = `
       <td>${escapeHtml(log.ts)}</td>
       <td>${escapeHtml(log.level)}</td>
@@ -186,6 +207,8 @@ function escapeHtml(text) {
 function applyFilters(){
 
   filteredLogs = logs.filter(l => {
+
+    if (!l.isoTime) return false;
     
     if (!showAllLevelsCheckbox.checked) {
     const levelCheck = 
@@ -205,7 +228,11 @@ function applyFilters(){
         return false;
     }
 
-    if (endTimeInput.value && l.isoTime > endTimeInput.value) return false;
+    if (endTimeInput.value){
+      const endWithSeconds = endTimeInput.value + ':00';
+      if (l.isoTime > endWithSeconds)
+        return false;
+    }
 
     const keyword = keywordInput.value.trim().toLowerCase();
     if (keyword && !l.msg.toLowerCase().includes(keyword)) {
@@ -249,7 +276,7 @@ function escapeCsv(value){
 
 function exportToCSV(){
   if (filteredLogs.length === 0){
-    alert("Нет данных для экспорта в CSV!");
+    alert("No data for Export to CSV!");
     return;
   }
 
@@ -277,7 +304,6 @@ function exportToCSV(){
   URL.revokeObjectURL(url);
 }
 
-  // функция с локальной переменной
   function debounce(func, timeoutMs) {
     let timeout;
     return function perform(...args) {
@@ -288,6 +314,7 @@ function exportToCSV(){
 
 // date normalization function (ISO format)
 function normalizeToIso(ts) {
+  if (!ts) return null;
   const match = ts.match(/^(\d{4})-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{1,2}):(\d{1,2})$/);
   if (!match) return null;
 
@@ -297,7 +324,7 @@ function normalizeToIso(ts) {
   return `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
-function diasableCheckBoxes() {
+function disableCheckBoxes() {
     errorCheckbox.checked = false;
     warnCheckbox.checked = false;
     infoCheckbox.checked = false;
@@ -305,7 +332,7 @@ function diasableCheckBoxes() {
     applyFilters();
 }
 
-function diasableShowAllLevelsCheckbox() {
+function disableShowAllLevelsCheckbox() {
     showAllLevelsCheckbox.checked = false;
 
     applyFilters();
