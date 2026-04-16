@@ -6,3 +6,5 @@
 {"ts":"2026-01-15 08:35:00","level":"INFO","service":"scheduler","msg":"Daily cleanup started"}
 {"ts":"2026-01-15 08:36:10","level":"WARN","service":"api","msg":"Rate limit exceeded for IP 192.168.1.100"}
 {"ts":"2026-01-15 08:37:30","level":"ERROR","service":"payment","msg":"Failed to process transaction #TX98765"}
+{"ts":"2026-01-15 08:37:30","level":"SECTEST","service":"payment","msg":"Failed to process transaction #TX98765"}
+{"ts":"2026-01-15 08:35:00","level":"TEST","service":"scheduler","msg":"Daily cleanup started"}

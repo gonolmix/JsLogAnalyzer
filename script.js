@@ -1,18 +1,19 @@
 (function() {
 // const
 
-const errorCheckbox = document.getElementById('ERROR');
-const warnCheckbox = document.getElementById('WARN');
-const infoCheckbox = document.getElementById('INFO');
-const startTimeInput = document.getElementById('startTime');
-const endTimeInput = document.getElementById('endTime');
-const keywordInput = document.getElementById('messageKeyword');
-const showAllLevelsCheckbox = document.getElementById('showAllLevels');
-const report = document.getElementById('parseReport');
-const fileInput = document.getElementById('fileInput');
-const fileButton = document.getElementById('fileButton');
-const exportButton = document.getElementById('exportButton');
-const tbody = document.getElementById('logBody');
+const errorCheckbox = getElement('ERROR');
+const warnCheckbox = getElement('WARN');
+const infoCheckbox = getElement('INFO');
+const othersCheckbox = getElement('OTHERS');
+const startTimeInput = getElement('startTime');
+const endTimeInput = getElement('endTime');
+const keywordInput = getElement('messageKeyword');
+const showAllLevelsCheckbox = getElement('showAllLevels');
+const report = getElement('parseReport');
+const fileInput = getElement('fileInput');
+const fileButton = getElement('fileButton');
+const exportButton = getElement('exportButton');
+const tbody = getElement('logBody');
 
 
 // more flexible regex
@@ -48,6 +49,7 @@ warnCheckbox.addEventListener('change', disableShowAllLevelsCheckbox);
 infoCheckbox.addEventListener('change', disableShowAllLevelsCheckbox);
 startTimeInput.addEventListener('change', applyFilters);
 endTimeInput.addEventListener('change', applyFilters);
+othersCheckbox.addEventListener('change', disableShowAllLevelsCheckbox);
 
 
 // debounce (300 ms)
@@ -59,6 +61,7 @@ showAllLevelsCheckbox.addEventListener('change', disableCheckBoxes);
 
 
 async function handleFile(event) {
+  try{
     parseErrorCount = 0;
     dateErrorsCount = 0;
     parseMessages = [];
@@ -75,7 +78,21 @@ async function handleFile(event) {
     event.target.value = '';
     
     makeReport();
+    }
+  catch(error){
+    console.error('File processing failed:', error);
+
+    alert('Failed to read the file. Please check if it is valid and not corrupted.');
+
+    parseMessages = [`File read error: ${error.message}`];
+
+    makeReport();
+  }
 }
+
+ //parsing strategy:
+ //- Try to parse entire file as JSON (array or object)
+ //- If fails, process as JSONL (line-by-line)
 
 function parseLogText(text, isJson) {
   if (!isJson) {
@@ -214,7 +231,9 @@ function applyFilters(){
     const levelCheck = 
     (errorCheckbox.checked && l.level === "ERROR") ||
     (warnCheckbox.checked && l.level === "WARN") ||
-    (infoCheckbox.checked && l.level === "INFO");
+    (infoCheckbox.checked && l.level === "INFO") ||
+    (othersCheckbox.checked && l.level !== "ERROR" && l.level !== "WARN" && l.level !== "INFO")
+    ;
 
     if (!levelCheck){
       return false;
@@ -328,6 +347,7 @@ function disableCheckBoxes() {
     errorCheckbox.checked = false;
     warnCheckbox.checked = false;
     infoCheckbox.checked = false;
+    othersCheckbox.checked = false;
 
     applyFilters();
 }
@@ -373,4 +393,12 @@ function makeReport() {
   report.value = reportLines.join('\n');
 }
 
+function getElement(id) {
+  const el = document.getElementById(id);
+  if (!el) {
+    throw new Error(`Element with id "${id}" not found in DOM`);
+  }
+  return el;
+}
 })();
+
