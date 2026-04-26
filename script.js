@@ -28,6 +28,8 @@ let parseErrorCount = 0;
 // date error counter
 let dateErrorsCount = 0;
 
+let emptyLineCount = 0;
+
 // error messages storage
 let parseMessages = [];
 
@@ -64,6 +66,7 @@ async function handleFile(event) {
   try{
     parseErrorCount = 0;
     dateErrorsCount = 0;
+    emptyLineCount = 0;
     parseMessages = [];
     
     const file = event.target.files[0];
@@ -72,6 +75,9 @@ async function handleFile(event) {
         return;
 
     const text = await file.text();
+
+    emptyLineCount = (text.match(/^\s*$/gm) || []).length;
+
     logs = parseLogText(text, file.name.endsWith('.json'));
     applyFilters();
 
@@ -102,7 +108,7 @@ function parseLogText(text, isJson) {
   for (const line of lines) {
     const match = line.match(logRegex);
     if (!match || !match.groups) {
-      logParseMessage('Line does not match format', line);
+      logParseMessage('Missing delimiter between service and message (expected " — ", "-", or ":")', line);
       parseErrorCount++;
       continue;
     }
@@ -247,9 +253,9 @@ function applyFilters(){
         return false;
     }
 
-    if (endTimeInput.value){
-      const endWithSeconds = endTimeInput.value + ':00';
-      if (l.isoTime > endWithSeconds)
+    if (endTimeInput.value) {
+      const endWithSeconds = endTimeInput.value + ':59';
+      if (l.isoTime > endWithSeconds) 
         return false;
     }
 
@@ -273,15 +279,16 @@ function isDateValid(ts){
   const [hours, minutes, seconds] = timePart.split(':').map(Number);
 
   if (month < 1 || month > 12) return false;
-  if (day < 1 || day > 31) return false;
   if (hours < 0 || hours > 23) return false;
   if (minutes < 0 || minutes > 59) return false;
   if (seconds < 0 || seconds > 59) return false;
 
   const d = new Date(year, month - 1, day, hours, minutes, seconds);
-  return d.getFullYear() === year &&
+  return (
+         d.getFullYear() === year &&
          d.getMonth() === month - 1 &&
-         d.getDate() === day;
+         d.getDate() === day
+  );
 }
 
 function escapeCsv(value){
@@ -371,11 +378,14 @@ function logParseMessage(message, line = '') {
 function makeReport() {
   const totalParsed = logs.length;
   const totalSkipped = parseErrorCount + dateErrorsCount;
-  const totalProcessed = totalParsed + totalSkipped;
+  const totalNonEmpty = totalParsed + totalSkipped;
+  const totalFileLines = totalNonEmpty + emptyLineCount;
 
   let reportLines = [];
-  reportLines.push(`Total lines processed: ${totalProcessed}`);
-  reportLines.push(`Successfully parsed:  ${totalParsed}`);
+  reportLines.push(`Total lines in file: ${totalFileLines}`);
+  reportLines.push(`Empty lines: ${emptyLineCount}`);
+  reportLines.push(`Non-empty lines processed: ${totalNonEmpty}`);
+  reportLines.push(`Successfully parsed: ${totalParsed}`);
   reportLines.push(`Skipped due to errors: ${totalSkipped}`);
   reportLines.push('');
 
